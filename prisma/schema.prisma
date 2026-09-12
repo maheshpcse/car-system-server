@@ -1,0 +1,614 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  SHOWROOM_VISITOR
+  SALES_ADVISOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum BodyType {
+  sedan
+  suv
+  coupe
+  hatchback
+  wagon
+  roadster
+  crossover
+  pickup
+}
+
+enum FuelType {
+  electric
+  hybrid
+  petrol
+  diesel
+}
+
+enum Transmission {
+  automatic
+  manual
+  single_speed
+  dual_clutch
+}
+
+enum ColorFinish {
+  solid
+  metallic
+  pearl
+  matte
+}
+
+enum WheelStyle {
+  aero
+  sport
+  classic
+  forged
+}
+
+enum InteriorMaterial {
+  fabric
+  leather
+  vegan_leather
+  alcantara
+}
+
+enum FeatureKind {
+  FEATURE
+  TECHNOLOGY
+  SAFETY
+}
+
+enum RenderMode {
+  procedural
+  asset
+}
+
+enum Silhouette {
+  sedan
+  suv
+  coupe
+  hatch
+  wagon
+  roadster
+  pickup
+}
+
+enum MediaType {
+  IMAGE
+  GALLERY
+  MODEL_3D
+  TEXTURE
+  HDR
+  AVATAR
+  THUMBNAIL
+}
+
+enum AuditAction {
+  VEHICLE_CREATED
+  VEHICLE_UPDATED
+  VEHICLE_ARCHIVED
+  PRICE_CHANGED
+  MEDIA_REMOVED
+  ROLE_CHANGED
+  USER_DISABLED
+  BRAND_CREATED
+  CATEGORY_CREATED
+  VARIANT_CREATED
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String    @map("password_hash")
+  name            String
+  firstName       String?   @map("first_name")
+  lastName        String?   @map("last_name")
+  displayName     String?   @map("display_name")
+  phone           String?
+  title           String    @default("Customer")
+  role            UserRole  @default(CUSTOMER)
+  avatarSeed      Int       @default(1) @map("avatar_seed")
+  avatar          String?
+  location        String    @default("Remote")
+  emailVerifiedAt DateTime? @map("email_verified_at")
+  isDemo          Boolean   @default(false) @map("is_demo")
+  isActive        Boolean   @default(true) @map("is_active")
+  personaId       String?   @unique @map("persona_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  preferences         UserPreference?
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  emailVerifyTokens   EmailVerifyToken[]
+  favorites           Favorite[]
+  configurations      VehicleConfiguration[]
+  savedBuilds         SavedBuild[]
+  comparisons         Comparison[]
+  notifications       Notification[]
+  showroomSessions    ShowroomSession[]
+  auditLogs           AuditLog[]             @relation("AuditActor")
+
+  @@index([role])
+  @@map("users")
+}
+
+model UserPreference {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique @map("user_id")
+  theme                   String   @default("system")
+  defaultVehicleView      String   @default("exterior") @map("default_vehicle_view")
+  defaultGridMode         String   @default("grid") @map("default_grid_mode")
+  measurementUnits        String   @default("metric") @map("measurement_units")
+  currency                String   @default("USD")
+  notificationPreferences Json     @default("{}") @map("notification_preferences")
+  sidebarCollapsed        Boolean  @default(false) @map("sidebar_collapsed")
+  reducedEffects          Boolean  @default(false) @map("reduced_effects")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  userAgent String?   @map("user_agent")
+  ip        String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+model EmailVerifyToken {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("email_verify_tokens")
+}
+
+model Brand {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  name        String    @unique
+  description String?   @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  vehicles    Vehicle[]
+
+  @@map("brands")
+}
+
+model Category {
+  id          String           @id @default(cuid())
+  slug        String           @unique
+  label       String
+  description String           @db.Text
+  icon        String
+  sortOrder   Int              @default(0) @map("sort_order")
+  vehicles    VehicleCategory[]
+
+  @@map("vehicle_categories")
+}
+
+model Vehicle {
+  id            String       @id
+  slug          String       @unique
+  brandId       String       @map("brand_id")
+  manufacturer  String
+  model         String
+  variant       String
+  year          Int
+  tagline       String       @db.Text
+  description   String       @db.Text
+  bodyType      BodyType     @map("body_type")
+  fuelType      FuelType     @map("fuel_type")
+  transmission  Transmission
+  power         Int
+  torque        Int
+  topSpeed      Int          @map("top_speed")
+  acceleration  Decimal      @db.Decimal(4, 1)
+  range         Int
+  mileage       Decimal?     @db.Decimal(6, 1)
+  seats         Int
+  price         Int
+  currency      String       @default("USD")
+  rating        Decimal      @db.Decimal(2, 1)
+  isNew         Boolean      @default(false) @map("is_new")
+  isFeatured    Boolean      @default(false) @map("is_featured")
+  isPublished   Boolean      @default(true) @map("is_published")
+  model3d       String?      @map("model_3d")
+  silhouette    Silhouette
+  renderMode    RenderMode   @default(procedural) @map("render_mode")
+  renderConfig  Json?        @map("render_config")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  brand            Brand                  @relation(fields: [brandId], references: [id])
+  categories       VehicleCategory[]
+  specifications   VehicleSpecification?
+  features         VehicleFeature[]
+  colors           VehicleColor[]
+  wheels           VehicleWheel[]
+  interiors        VehicleInterior[]
+  trims            VehicleTrim[]
+  accessories      VehicleAccessory[]
+  variants         VehicleVariant[]
+  media            VehicleMedia[]
+  favorites        Favorite[]
+  configurations   VehicleConfiguration[]
+  savedBuilds      SavedBuild[]
+  comparisonItems  ComparisonItem[]
+
+  @@index([brandId])
+  @@index([year])
+  @@index([price])
+  @@index([isFeatured])
+  @@index([bodyType])
+  @@index([fuelType])
+  @@index([isPublished])
+  @@map("vehicles")
+}
+
+model VehicleCategory {
+  vehicleId  String @map("vehicle_id")
+  categoryId String @map("category_id")
+
+  vehicle  Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([vehicleId, categoryId])
+  @@index([categoryId])
+  @@map("vehicle_category_links")
+}
+
+model VehicleSpecification {
+  id           String @id @default(cuid())
+  vehicleId    String @unique @map("vehicle_id")
+  lengthMm     Int    @map("length_mm")
+  widthMm      Int    @map("width_mm")
+  heightMm     Int    @map("height_mm")
+  wheelbaseMm  Int    @map("wheelbase_mm")
+  cargoLiters  Int    @map("cargo_liters")
+  weightKg     Int    @map("weight_kg")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@map("vehicle_specifications")
+}
+
+model VehicleFeature {
+  id        String      @id @default(cuid())
+  vehicleId String      @map("vehicle_id")
+  kind      FeatureKind
+  label     String
+  sortOrder Int         @default(0) @map("sort_order")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId, kind])
+  @@map("vehicle_features")
+}
+
+model VehicleVariant {
+  id           String  @id @default(cuid())
+  optionId     String  @map("option_id")
+  vehicleId    String  @map("vehicle_id")
+  name         String
+  price        Int
+  power        Int
+  range        Int
+  acceleration Decimal @db.Decimal(4, 1)
+  isDefault    Boolean @default(false) @map("is_default")
+  available    Boolean @default(true)
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@unique([vehicleId, optionId])
+  @@index([vehicleId])
+  @@map("vehicle_variants")
+}
+
+model VehicleColor {
+  id        String      @id @default(cuid())
+  optionId  String      @map("option_id")
+  vehicleId String      @map("vehicle_id")
+  name      String
+  hex       String
+  finish    ColorFinish
+  price     Int         @default(0)
+  available Boolean     @default(true)
+  sortOrder Int         @default(0) @map("sort_order")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@unique([vehicleId, optionId])
+  @@index([vehicleId])
+  @@map("vehicle_colors")
+}
+
+model VehicleWheel {
+  id         String     @id @default(cuid())
+  optionId   String     @map("option_id")
+  vehicleId  String     @map("vehicle_id")
+  name       String
+  sizeInches Int        @map("size_inches")
+  style      WheelStyle
+  price      Int        @default(0)
+  available  Boolean    @default(true)
+  sortOrder  Int        @default(0) @map("sort_order")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@unique([vehicleId, optionId])
+  @@index([vehicleId])
+  @@map("vehicle_wheels")
+}
+
+model VehicleInterior {
+  id        String           @id @default(cuid())
+  optionId  String           @map("option_id")
+  vehicleId String           @map("vehicle_id")
+  name      String
+  accent    String
+  material  InteriorMaterial
+  price     Int              @default(0)
+  available Boolean          @default(true)
+  sortOrder Int              @default(0) @map("sort_order")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@unique([vehicleId, optionId])
+  @@index([vehicleId])
+  @@map("vehicle_interiors")
+}
+
+model VehicleTrim {
+  id          String  @id @default(cuid())
+  optionId    String  @map("option_id")
+  vehicleId   String  @map("vehicle_id")
+  name        String
+  description String  @db.Text
+  price       Int     @default(0)
+  available   Boolean @default(true)
+  sortOrder   Int     @default(0) @map("sort_order")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@unique([vehicleId, optionId])
+  @@index([vehicleId])
+  @@map("vehicle_trims")
+}
+
+model VehicleAccessory {
+  id          String  @id @default(cuid())
+  optionId    String  @map("option_id")
+  vehicleId   String  @map("vehicle_id")
+  name        String
+  description String  @db.Text
+  price       Int     @default(0)
+  available   Boolean @default(true)
+  sortOrder   Int     @default(0) @map("sort_order")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@unique([vehicleId, optionId])
+  @@index([vehicleId])
+  @@map("vehicle_accessories")
+}
+
+model VehicleMedia {
+  id           String    @id @default(cuid())
+  vehicleId    String    @map("vehicle_id")
+  mediaType    MediaType @map("media_type")
+  storageKey   String    @map("storage_key")
+  cdnUrl       String    @map("cdn_url")
+  mimeType     String    @map("mime_type")
+  fileSize     Int       @map("file_size")
+  displayOrder Int       @default(0) @map("display_order")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@map("vehicle_media")
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  vehicleId String   @map("vehicle_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, vehicleId])
+  @@index([userId])
+  @@index([vehicleId])
+  @@map("favorites")
+}
+
+model VehicleConfiguration {
+  id           String   @id @default(cuid())
+  userId       String?  @map("user_id")
+  vehicleId    String   @map("vehicle_id")
+  variantId    String   @map("variant_id")
+  colorId      String   @map("color_id")
+  wheelId      String   @map("wheel_id")
+  interiorId   String   @map("interior_id")
+  trimId       String   @map("trim_id")
+  accessoryIds Json     @map("accessory_ids")
+  basePrice    Int      @map("base_price")
+  optionPrice  Int      @map("option_price")
+  totalPrice   Int      @map("total_price")
+  currency     String   @default("USD")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user       User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  vehicle    Vehicle    @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  savedBuild SavedBuild?
+
+  @@index([userId])
+  @@index([vehicleId])
+  @@map("vehicle_configurations")
+}
+
+model SavedBuild {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  vehicleId       String   @map("vehicle_id")
+  configurationId String   @unique @map("configuration_id")
+  name            String
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle       Vehicle               @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  configuration VehicleConfiguration  @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("saved_builds")
+}
+
+model Comparison {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user  User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items ComparisonItem[]
+
+  @@index([userId])
+  @@map("comparisons")
+}
+
+model ComparisonItem {
+  id           String @id @default(cuid())
+  comparisonId String @map("comparison_id")
+  vehicleId    String @map("vehicle_id")
+  sortOrder    Int    @default(0) @map("sort_order")
+
+  comparison Comparison @relation(fields: [comparisonId], references: [id], onDelete: Cascade)
+  vehicle    Vehicle    @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@unique([comparisonId, vehicleId])
+  @@index([vehicleId])
+  @@map("comparison_items")
+}
+
+model ShowroomSession {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  mode      String   @default("explore")
+  vehicleId String?  @map("vehicle_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user   User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  events ShowroomEvent[]
+
+  @@index([userId])
+  @@map("showroom_sessions")
+}
+
+model ShowroomEvent {
+  id        String   @id @default(cuid())
+  sessionId String   @map("session_id")
+  type      String
+  payload   Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  session ShowroomSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("showroom_events")
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  type      String
+  title     String
+  body      String    @db.Text
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id           String      @id @default(cuid())
+  actorUserId  String?     @map("actor_user_id")
+  action       AuditAction
+  resourceType String      @map("resource_type")
+  resourceId   String      @map("resource_id")
+  beforeData   Json?       @map("before_data")
+  afterData    Json?       @map("after_data")
+  requestId    String?     @map("request_id")
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  actor User? @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId])
+  @@index([resourceType, resourceId])
+  @@map("audit_logs")
+}
+
+model MediaAsset {
+  id         String    @id @default(cuid())
+  storageKey String    @unique @map("storage_key")
+  cdnUrl     String    @map("cdn_url")
+  mediaType  MediaType @map("media_type")
+  mimeType   String    @map("mime_type")
+  fileSize   Int       @map("file_size")
+  status     String    @default("pending")
+  uploadedBy String?   @map("uploaded_by")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  completedAt DateTime? @map("completed_at")
+
+  @@map("media_assets")
+}

@@ -1,0 +1,39 @@
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: aurora
+      MYSQL_USER: aurora
+      MYSQL_PASSWORD: aurora
+      MYSQL_ROOT_PASSWORD: aurora
+    ports:
+      - '3306:3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '-uarora', '-paurora']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build: .
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 5000
+      DATABASE_URL: mysql://aurora:aurora@mysql:3306/aurora
+      FRONTEND_URLS: http://localhost:5173,http://localhost:4173
+      JWT_ACCESS_SECRET: local-access-secret-change-me-32
+      JWT_REFRESH_SECRET: local-refresh-secret-change-me-32
+      DEMO_MODE: 'true'
+      EMAIL_PROVIDER: console
+      STORAGE_PROVIDER: local
+    ports:
+      - '5000:5000'
+
+volumes:
+  mysql_data:
