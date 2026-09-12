@@ -1,6 +1,15 @@
 import type { CorsOptions } from 'cors';
 import { env } from './environment.js';
 
+/** Browsers send Origin without a path. FRONTEND_URLS may include /car-system/. */
+function originHost(value: string) {
+  try {
+    return new URL(value).origin;
+  } catch {
+    return value.replace(/\/$/, '');
+  }
+}
+
 export const corsOptions: CorsOptions = {
   origin(origin, callback) {
     if (!origin) {
@@ -8,8 +17,8 @@ export const corsOptions: CorsOptions = {
       return;
     }
     const allowed = env.frontendOrigins.some((configured) => {
-      if (configured === origin) return true;
-      if (configured === 'https://maheshpcse.github.io' && origin.startsWith('https://maheshpcse.github.io')) {
+      if (configured === origin || originHost(configured) === origin) return true;
+      if (origin.startsWith('https://maheshpcse.github.io') && originHost(configured).startsWith('https://maheshpcse.github.io')) {
         return true;
       }
       return false;

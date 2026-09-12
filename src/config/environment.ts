@@ -13,7 +13,7 @@ const schema = z.object({
   DATABASE_URL: z.string().min(1).default('mysql://aurora:aurora@localhost:3306/aurora'),
   FRONTEND_URLS: z
     .string()
-    .default('http://localhost:5173,http://localhost:4173,https://maheshpcse.github.io'),
+    .default('http://localhost:5173,http://localhost:4173,https://maheshpcse.github.io/car-system/'),
   JWT_ACCESS_SECRET: z.string().min(16).default('dev-access-secret-change-me-32'),
   JWT_REFRESH_SECRET: z.string().min(16).default('dev-refresh-secret-change-me-32'),
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),

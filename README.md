@@ -63,7 +63,13 @@ npm run dev
 
 See `.env.example`. Production secrets should come from AWS Secrets Manager or SSM, not the git repo.
 
-Cross-origin GitHub Pages hosting is first-class: set `FRONTEND_URLS` and use `COOKIE_SAMESITE=none` plus `COOKIE_SECURE=true` so the HTTP-only refresh cookie can be sent to the API origin.
+Cross-origin GitHub Pages hosting is first-class. Set the live frontend on **`FRONTEND_URLS`**:
+
+```bash
+FRONTEND_URLS=https://maheshpcse.github.io/car-system/,http://localhost:5173
+```
+
+Also set `COOKIE_SAMESITE=none` and `COOKIE_SECURE=true` so the HTTP-only refresh cookie can be sent to the API origin. The browser CORS `Origin` is `https://maheshpcse.github.io`; the `/car-system/` path is the Pages project base.
 
 ## Database migrations
 
@@ -168,7 +174,7 @@ Railway config files in this repo:
 1. Create a Railway project from this repository.
 2. Add a **MySQL** plugin and attach it to the API service.
 3. Copy variables from `.env.railway.example`. Set long JWT secrets. Leave `DATABASE_URL` empty so the API can build it from `MYSQLHOST` / `MYSQLUSER` / `MYSQLPASSWORD` / `MYSQLDATABASE`.
-4. Set `FRONTEND_URLS=https://maheshpcse.github.io` (and any custom frontend origin).
+4. Set `FRONTEND_URLS=https://maheshpcse.github.io/car-system/` (and localhost if you still develop against the live API).
 5. Set `COOKIE_SECURE=true` and `COOKIE_SAMESITE=none` so GitHub Pages can use the refresh cookie.
 6. Deploy. First boot runs `prisma migrate deploy`, which creates tables and inserts the Aurora catalogue plus demo users. `RUN_DB_SEED=true` is only needed if you want the TypeScript seeder to upsert on top of that.
 7. Health: `https://<your-service>.up.railway.app/health`
