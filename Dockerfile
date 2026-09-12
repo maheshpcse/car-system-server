@@ -18,4 +18,4 @@ COPY prisma ./prisma
 RUN npm ci --omit=dev && npx prisma generate
 COPY --from=build /app/dist ./dist
 EXPOSE 5000
-CMD ["node", "dist/app/server.js"]
+CMD ["npm", "run", "start:prod"]

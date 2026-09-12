@@ -125,7 +125,34 @@ Large GLB uploads use `POST /api/v1/media/presigned-upload` then `POST /api/v1/m
 
 Local development uses `EMAIL_PROVIDER=console` and `STORAGE_PROVIDER=local`. Automated tests mock AWS.
 
-Recommended deploy: App Runner or ECS Fargate. Do not deploy Express to GitHub Pages. Do not introduce EKS.
+Recommended production split:
+
+- Frontend: GitHub Pages (`maheshpcse/car-system`)
+- Backend: Railway (`car-system-server`)
+
+Do not deploy Express to GitHub Pages. Do not introduce EKS.
+
+## Railway (production API)
+
+Railway config files in this repo:
+
+| File | Purpose |
+| --- | --- |
+| `railway.json` | Builder, start command, `/health` check |
+| `nixpacks.toml` | Node 22 install/build/start |
+| `Procfile` | `web` process for Railway/Heroku-style hosts |
+| `.env.railway.example` | Variables to paste into Railway |
+
+1. Create a Railway project from this repository.
+2. Add a **MySQL** plugin and attach it to the API service.
+3. Copy variables from `.env.railway.example`. Set long JWT secrets. Leave `DATABASE_URL` empty so the API can build it from `MYSQLHOST` / `MYSQLUSER` / `MYSQLPASSWORD` / `MYSQLDATABASE`.
+4. Set `FRONTEND_URLS=https://maheshpcse.github.io` (and any custom frontend origin).
+5. Set `COOKIE_SECURE=true` and `COOKIE_SAMESITE=none` so GitHub Pages can use the refresh cookie.
+6. Deploy. First boot runs `prisma migrate deploy`. Set `RUN_DB_SEED=true` once to load the Aurora catalogue, then remove it.
+7. Health: `https://<your-service>.up.railway.app/health`
+8. API base for the frontend: `https://<your-service>.up.railway.app/api/v1`
+
+Railway also auto-deploys from `main`. Optional GitHub Action: `.github/workflows/deploy-railway.yml` (needs `RAILWAY_TOKEN`, optional `RAILWAY_SERVICE_ID`).
 
 ## Scripts
 
@@ -133,6 +160,7 @@ Recommended deploy: App Runner or ECS Fargate. Do not deploy Express to GitHub P
 npm run dev
 npm run build
 npm start
+npm run start:prod
 npm run lint
 npm run typecheck
 npm test

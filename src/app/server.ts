@@ -5,8 +5,9 @@ import { createApp } from './app.js';
 
 const app = createApp();
 
-const server = app.listen(env.PORT, () => {
-  logger.info('api.listening', { port: env.PORT, env: env.NODE_ENV, app: env.APP_NAME });
+const host = process.env.HOST ?? '0.0.0.0';
+const server = app.listen(env.PORT, host, () => {
+  logger.info('api.listening', { port: env.PORT, host, env: env.NODE_ENV, app: env.APP_NAME });
 });
 
 async function shutdown(signal: string) {
