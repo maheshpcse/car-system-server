@@ -23,9 +23,11 @@ Domains: auth, users, vehicles, brands/categories, showroom, configurator, favor
 
 ## Requirements
 
-- Node.js 22 LTS
+- Node.js **18.13.0** (see `.nvmrc` / `.node-version`; Docker and CI use the same tag)
+- npm 8.19.2 or later (bundled with Node 18.13.0)
 - MySQL 8
-- npm
+
+npm packages are pinned to versions that declare support for Node 18.13.0 (Prisma 5, Express 4, ESLint 8, Zod 3, TypeScript 5.4, Vitest 2). Do not bump to Prisma 6 / ESLint 9 / TypeScript-ESLint 8 without raising the Node engine — those require Node 18.18+.
 
 Optional later: Redis, SQS, MongoDB, a Python AI service. None of those are required for v1.
 
@@ -159,7 +161,7 @@ Railway config files in this repo:
 | File | Purpose |
 | --- | --- |
 | `railway.json` | Builder, start command, `/health` check |
-| `nixpacks.toml` | Node 22 install/build/start |
+| `nixpacks.toml` | Node 18.13.0 install/build/start |
 | `Procfile` | `web` process for Railway/Heroku-style hosts |
 | `.env.railway.example` | Variables to paste into Railway |
 
