@@ -36,8 +36,7 @@ Optional later: Redis, SQS, MongoDB, a Python AI service. None of those are requ
 cp .env.example .env
 docker compose up mysql -d
 npm install
-npx prisma migrate deploy
-npm run db:seed
+npx prisma migrate deploy   # tables + catalogue + demo users
 npm run dev
 ```
 
@@ -64,13 +63,34 @@ See `.env.example`. Production secrets should come from AWS Secrets Manager or S
 
 Cross-origin GitHub Pages hosting is first-class: set `FRONTEND_URLS` and use `COOKIE_SAMESITE=none` plus `COOKIE_SECURE=true` so the HTTP-only refresh cookie can be sent to the API origin.
 
-## Database
+## Database migrations
 
-Prisma migrations live in `prisma/migrations`. Do not use `prisma db push` as the production strategy.
+Prisma SQL migrations in `prisma/migrations` create the schema **and** load baseline data. Do not use `prisma db push` as the production strategy. See `prisma/migrations/README.md` for the full table list.
 
-Seed data copies the fictional Aurora Motors catalogue already used by the frontend: Aureon, Velora, Nexen, Kairo, Orion, Rivana, Solace, Ventra.
+```bash
+npx prisma migrate deploy          # apply pending schema + data migrations
+npm run db:seed                    # optional upsert if you change TypeScript catalogue locally
+npm run db:generate-data-migration # regenerate the data SQL from src/database/seed/catalog.ts
+```
 
-Demo accounts (`DEMO_MODE=true`, password `demo1234`):
+| Migration | Type | Contents |
+| --- | --- | --- |
+| `20240912120000_init` | Schema | All tables, enums, indexes, foreign keys |
+| `20240912130000_seed_aurora_catalog` | Data | Brands, categories, 12 vehicles, configuration options, demo users |
+
+### Tables
+
+**Identity:** `users`, `user_preferences`, `refresh_tokens`, `password_reset_tokens`, `email_verify_tokens`
+
+**Catalogue:** `brands`, `vehicle_categories`, `vehicles`, `vehicle_category_links`, `vehicle_specifications`, `vehicle_features`, `vehicle_variants`, `vehicle_colors`, `vehicle_wheels`, `vehicle_interiors`, `vehicle_trims`, `vehicle_accessories`, `vehicle_media`
+
+**Studio:** `favorites`, `vehicle_configurations`, `saved_builds`, `comparisons`, `comparison_items`, `showroom_sessions`, `showroom_events`, `notifications`
+
+**Admin:** `audit_logs`, `media_assets`
+
+The data migration copies the fictional frontend catalogue: Aureon, Velora, Nexen, Kairo, Orion, Rivana, Solace, Ventra (`aureon-x1`, `aureon-v9`, `velora-gt`, `velora-estate`, `nexen-e7`, `nexen-city`, `kairo-s`, `kairo-cross`, `orion-touring`, `rivana-xr`, `solace-ev`, `ventra-rs`).
+
+Demo accounts (`DEMO_MODE=true`, password `demo1234`) are inserted by the data migration:
 
 | Persona | Email | Frontend role |
 | --- | --- | --- |
@@ -148,7 +168,7 @@ Railway config files in this repo:
 3. Copy variables from `.env.railway.example`. Set long JWT secrets. Leave `DATABASE_URL` empty so the API can build it from `MYSQLHOST` / `MYSQLUSER` / `MYSQLPASSWORD` / `MYSQLDATABASE`.
 4. Set `FRONTEND_URLS=https://maheshpcse.github.io` (and any custom frontend origin).
 5. Set `COOKIE_SECURE=true` and `COOKIE_SAMESITE=none` so GitHub Pages can use the refresh cookie.
-6. Deploy. First boot runs `prisma migrate deploy`. Set `RUN_DB_SEED=true` once to load the Aurora catalogue, then remove it.
+6. Deploy. First boot runs `prisma migrate deploy`, which creates tables and inserts the Aurora catalogue plus demo users. `RUN_DB_SEED=true` is only needed if you want the TypeScript seeder to upsert on top of that.
 7. Health: `https://<your-service>.up.railway.app/health`
 8. API base for the frontend: `https://<your-service>.up.railway.app/api/v1`
 
@@ -165,6 +185,8 @@ npm run lint
 npm run typecheck
 npm test
 npm run db:seed
+npm run db:generate-data-migration
+npx prisma migrate deploy
 ```
 
 ## Docker

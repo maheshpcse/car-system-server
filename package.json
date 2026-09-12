@@ -19,6 +19,7 @@
     "prisma:migrate": "prisma migrate deploy",
     "prisma:migrate:dev": "prisma migrate dev",
     "db:seed": "tsx src/database/seed/index.ts",
+    "db:generate-data-migration": "tsx src/database/seed/generate-data-migration.ts",
     "db:setup": "prisma migrate deploy && tsx src/database/seed/index.ts",
     "openapi": "tsx src/app/export-openapi.ts",
     "format": "prettier --write .",
