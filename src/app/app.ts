@@ -19,6 +19,7 @@ import { favoriteRoutes } from '../modules/favorites/routes.js';
 import { comparisonRoutes } from '../modules/comparisons/routes.js';
 import { savedBuildRoutes } from '../modules/saved-builds/routes.js';
 import { notificationRoutes } from '../modules/notifications/routes.js';
+import { navigationRoutes } from '../modules/navigation/routes.js';
 import { mediaRoutes } from '../modules/media/routes.js';
 import { adminRoutes } from '../modules/admin/routes.js';
 import { healthRoutes } from '../modules/health/routes.js';
@@ -54,6 +55,7 @@ export function createApp() {
   api.use('/favorites', favoriteRoutes);
   api.use('/comparisons', comparisonRoutes);
   api.use('/saved-builds', savedBuildRoutes);
+  api.use('/navigation', navigationRoutes);
   api.use('/notifications', notificationRoutes);
   api.use('/media', mediaRoutes);
   api.use('/admin', adminRoutes);

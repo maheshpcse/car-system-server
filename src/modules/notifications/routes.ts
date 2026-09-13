@@ -1,43 +1,26 @@
 import { Router } from 'express';
-import type { Request, Response } from 'express';
-import { prisma } from '../../database/prisma/client.js';
-import { sendSuccess } from '../../common/response/apiResponse.js';
+import { validate } from '../../common/validation/validate.js';
 import { requireAuth } from '../../middleware/authenticate.js';
+import {
+  clearNotifications,
+  listNotifications,
+  markAllRead,
+  markRead,
+  pushSubscribe,
+  removeNotification,
+  unreadCount,
+} from './controller.js';
+import { notificationIdParams, pushSubscribeSchema } from './schema.js';
 
 export const notificationRoutes = Router();
 notificationRoutes.use(requireAuth);
 
-notificationRoutes.get('/', async (req: Request, res: Response) => {
-  const rows = await prisma.notification.findMany({
-    where: { userId: req.user!.id },
-    orderBy: { createdAt: 'desc' },
-    take: 50,
-  });
-  sendSuccess(
-    res,
-    rows.map((row) => ({
-      id: row.id,
-      type: row.type,
-      title: row.title,
-      body: row.body,
-      readAt: row.readAt?.toISOString() ?? null,
-      createdAt: row.createdAt.toISOString(),
-    })),
-  );
-});
-
-notificationRoutes.patch('/read-all', async (req: Request, res: Response) => {
-  await prisma.notification.updateMany({
-    where: { userId: req.user!.id, readAt: null },
-    data: { readAt: new Date() },
-  });
-  sendSuccess(res, { ok: true });
-});
-
-notificationRoutes.patch('/:id/read', async (req: Request, res: Response) => {
-  await prisma.notification.updateMany({
-    where: { id: String(req.params.id), userId: req.user!.id },
-    data: { readAt: new Date() },
-  });
-  sendSuccess(res, { ok: true });
-});
+notificationRoutes.get('/', listNotifications);
+notificationRoutes.get('/unread-count', unreadCount);
+notificationRoutes.post('/read-all', markAllRead);
+notificationRoutes.patch('/read-all', markAllRead);
+notificationRoutes.post('/push-subscribe', validate({ body: pushSubscribeSchema }), pushSubscribe);
+notificationRoutes.delete('/', clearNotifications);
+notificationRoutes.post('/:id/read', validate({ params: notificationIdParams }), markRead);
+notificationRoutes.patch('/:id/read', validate({ params: notificationIdParams }), markRead);
+notificationRoutes.delete('/:id', validate({ params: notificationIdParams }), removeNotification);

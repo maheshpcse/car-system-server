@@ -1,5 +1,5 @@
 import { Prisma, PrismaClient, type InteriorMaterial, type Transmission } from '@prisma/client';
-import { DEMO_USERS } from '../../common/constants/index.js';
+import { DEMO_NOTIFICATIONS, DEMO_USERS } from '../../common/constants/index.js';
 import { hashPassword } from '../../utils/crypto.js';
 import { CATEGORY_SEED, VEHICLE_CATALOG } from './catalog.js';
 
@@ -26,6 +26,7 @@ async function seedUsers() {
     await prisma.user.upsert({
       where: { email: demo.email },
       update: {
+        username: demo.username,
         name: demo.name,
         title: demo.title,
         role: demo.role,
@@ -36,6 +37,7 @@ async function seedUsers() {
       },
       create: {
         email: demo.email,
+        username: demo.username,
         passwordHash,
         name: demo.name,
         title: demo.title,
@@ -48,6 +50,38 @@ async function seedUsers() {
         preferences: { create: {} },
       },
     });
+  }
+}
+
+async function seedDemoNotifications() {
+  const users = await prisma.user.findMany({
+    where: { personaId: { in: DEMO_USERS.map((demo) => demo.personaId) } },
+  });
+  for (const user of users) {
+    for (const item of DEMO_NOTIFICATIONS) {
+      const createdAt = new Date(Date.now() - item.minutesAgo * 60 * 1000);
+      await prisma.notification.upsert({
+        where: { id: `n_demo_${user.personaId}_${item.idSuffix}` },
+        update: {
+          title: item.title,
+          body: item.body,
+          href: item.href,
+          kind: item.kind,
+          type: item.type,
+        },
+        create: {
+          id: `n_demo_${user.personaId}_${item.idSuffix}`,
+          userId: user.id,
+          type: item.type,
+          title: item.title,
+          body: item.body,
+          href: item.href,
+          kind: item.kind,
+          readAt: item.read ? createdAt : null,
+          createdAt,
+        },
+      });
+    }
   }
 }
 
@@ -263,6 +297,7 @@ async function seedVehicles() {
 
 async function main() {
   await seedUsers();
+  await seedDemoNotifications();
   await seedTaxonomy();
   await seedVehicles();
 }

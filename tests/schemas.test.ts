@@ -6,15 +6,22 @@ describe('zod schemas', () => {
   it('accepts frontend signup payloads', () => {
     const parsed = signupSchema.parse({
       name: 'Maya Lindqvist',
+      username: 'Maya.L',
       email: 'maya@example.com',
       password: 'secret1',
       country: 'Denmark',
     });
     expect(parsed.email).toBe('maya@example.com');
+    expect(parsed.username).toBe('maya.l');
   });
 
-  it('rejects invalid login emails', () => {
-    expect(() => loginSchema.parse({ email: 'not-an-email', password: 'x' })).toThrow();
+  it('accepts username login from the frontend', () => {
+    const parsed = loginSchema.parse({ username: 'maya', password: 'demo1234', remember: true });
+    expect(parsed.username).toBe('maya');
+  });
+
+  it('rejects login without username or email', () => {
+    expect(() => loginSchema.parse({ password: 'x' })).toThrow();
   });
 
   it('accepts demo personas', () => {
