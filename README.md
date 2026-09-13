@@ -19,7 +19,7 @@ car-system-server (Express + TypeScript + Prisma)
 
 Modular monolith under `src/modules/*`. Each domain has routes, validation, a thin controller, a service, and Prisma access. Controllers never call AWS or SQL directly.
 
-Domains: auth, users, vehicles, brands/categories, showroom, configurator, favorites, comparisons, saved-builds, notifications, media, admin, audit.
+Domains: auth, users, vehicles, brands/categories, showroom, configurator, favorites, comparisons, saved-builds, navigation, notifications, media, admin, audit.
 
 ## Requirements
 
@@ -85,6 +85,7 @@ npm run db:generate-data-migration # regenerate the data SQL from src/database/s
 | --- | --- | --- |
 | `20240912120000_init` | Schema | All tables, enums, indexes, foreign keys |
 | `20240912130000_seed_aurora_catalog` | Data | Brands, categories, 12 vehicles, configuration options, demo users |
+| `20240913180000_username_notifications_push` | Schema + data | Unique `users.username`, notification `href`/`kind`, `push_subscriptions`, demo notification seed |
 
 ### Tables
 
@@ -92,7 +93,7 @@ npm run db:generate-data-migration # regenerate the data SQL from src/database/s
 
 **Catalogue:** `brands`, `vehicle_categories`, `vehicles`, `vehicle_category_links`, `vehicle_specifications`, `vehicle_features`, `vehicle_variants`, `vehicle_colors`, `vehicle_wheels`, `vehicle_interiors`, `vehicle_trims`, `vehicle_accessories`, `vehicle_media`
 
-**Studio:** `favorites`, `vehicle_configurations`, `saved_builds`, `comparisons`, `comparison_items`, `showroom_sessions`, `showroom_events`, `notifications`
+**Studio:** `favorites`, `vehicle_configurations`, `saved_builds`, `comparisons`, `comparison_items`, `showroom_sessions`, `showroom_events`, `notifications`, `push_subscriptions`
 
 **Admin:** `audit_logs`, `media_assets`
 
@@ -100,14 +101,14 @@ The data migration copies the fictional frontend catalogue: Aureon, Velora, Nexe
 
 Demo accounts (`DEMO_MODE=true`, password `demo1234`) are inserted by the data migration:
 
-| Persona | Email | Frontend role |
-| --- | --- | --- |
-| customer | maya@demo.aurora | customer |
-| visitor | visitor@demo.aurora | visitor |
-| advisor | daniel@demo.aurora | advisor |
-| admin | priya@demo.aurora | admin |
+| Persona | Username | Email | Frontend role |
+| --- | --- | --- | --- |
+| customer | maya | maya@demo.aurora | customer |
+| visitor | visitor | visitor@demo.aurora | visitor |
+| advisor | daniel | daniel@demo.aurora | advisor |
+| admin | priya | priya@demo.aurora | admin |
 
-`POST /api/v1/auth/demo-login` with `{ "persona": "customer" }` issues the same session.
+`POST /api/v1/auth/login` with `{ "username": "maya", "password": "demo1234" }` issues a session. `POST /api/v1/auth/demo-login` with `{ "persona": "maya" }` or `{ "persona": "customer" }` does the same.
 
 ## API contract
 
@@ -125,7 +126,19 @@ Errors never include stack traces in production:
 { "success": false, "error": { "code": "VEHICLE_NOT_FOUND", "message": "Vehicle was not found", "requestId": "..." } }
 ```
 
-Vehicle payloads match `src/models/vehicle.ts` in the frontend (`power`, `price`, `isFeatured`, `colors[].id`, `renderMode`, `silhouette`, …). Auth users match `src/models/user.ts` (`name`, `role`, `avatarSeed`, `joinedAt`, `location`).
+Vehicle payloads match `src/models/vehicle.ts` in the frontend (`power`, `price`, `isFeatured`, `colors[].id`, `renderMode`, `silhouette`, …). Auth users match `src/models/user.ts` (`name`, `username`, `role`, `avatarSeed`, `joinedAt`, `location`). Notifications match `AppNotification` (`title`, `detail`, `read`, `href`, `kind`).
+
+Frontend-called routes at `/api/v1`:
+
+| Area | Methods |
+| --- | --- |
+| Auth | `POST /auth/login`, `/auth/signup`, `/auth/forgot-password`, `/auth/logout`, `/auth/refresh` |
+| Navigation | `GET /navigation` → `{ groups }` |
+| Notifications | `GET /`, `GET /unread-count`, `POST /:id/read`, `POST /read-all`, `DELETE /:id`, `DELETE /`, `POST /push-subscribe` |
+| Profile | `GET/PATCH /users/me` |
+| Vehicles | `GET /vehicles`, `GET /vehicles/:id` |
+| Favorites | `GET /favorites`, `POST/DELETE /favorites/:vehicleId` |
+| Configurator | `POST /configurations`, `POST /saved-builds` |
 
 Configurator totals are calculated on the server. The client must not be trusted for price.
 

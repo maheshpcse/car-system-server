@@ -108,6 +108,7 @@ enum AuditAction {
 model User {
   id              String    @id @default(cuid())
   email           String    @unique
+  username        String    @unique
   passwordHash    String    @map("password_hash")
   name            String
   firstName       String?   @map("first_name")
@@ -135,6 +136,7 @@ model User {
   savedBuilds         SavedBuild[]
   comparisons         Comparison[]
   notifications       Notification[]
+  pushSubscriptions   PushSubscription[]
   showroomSessions    ShowroomSession[]
   auditLogs           AuditLog[]             @relation("AuditActor")
 
@@ -571,6 +573,8 @@ model Notification {
   type      String
   title     String
   body      String    @db.Text
+  href      String?   @db.VarChar(512)
+  kind      String    @default("info")
   readAt    DateTime? @map("read_at")
   createdAt DateTime  @default(now()) @map("created_at")
 
@@ -578,6 +582,22 @@ model Notification {
 
   @@index([userId, readAt])
   @@map("notifications")
+}
+
+model PushSubscription {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  endpoint     String   @db.Text
+  endpointHash String   @unique @map("endpoint_hash")
+  p256dh       String   @db.VarChar(255)
+  auth         String   @db.VarChar(255)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }
 
 model AuditLog {

@@ -17,6 +17,7 @@ export const openApiDocument = {
     { name: 'Favorites' },
     { name: 'Comparisons' },
     { name: 'Saved Builds' },
+    { name: 'Navigation' },
     { name: 'Notifications' },
     { name: 'Media' },
     { name: 'Admin' },
@@ -44,10 +45,18 @@ export const openApiDocument = {
   },
   paths: {
     '/auth/signup': {
-      post: { tags: ['Auth'], summary: 'Create an account', responses: { '201': { description: 'Created' } } },
+      post: {
+        tags: ['Auth'],
+        summary: 'Create an account with username + email',
+        responses: { '201': { description: 'Created' }, '409': { description: 'USERNAME_IN_USE or EMAIL_IN_USE' } },
+      },
     },
     '/auth/login': {
-      post: { tags: ['Auth'], summary: 'Email/password login', responses: { '200': { description: 'OK' } } },
+      post: {
+        tags: ['Auth'],
+        summary: 'Username/password login (email still accepted)',
+        responses: { '200': { description: 'OK' }, '401': { description: 'INVALID_CREDENTIALS' } },
+      },
     },
     '/auth/demo-login': {
       post: {
@@ -130,7 +139,38 @@ export const openApiDocument = {
       patch: { tags: ['Saved Builds'] },
       delete: { tags: ['Saved Builds'] },
     },
-    '/notifications': { get: { tags: ['Notifications'], security: [{ bearerAuth: [] }] } },
+    '/navigation': {
+      get: {
+        tags: ['Navigation'],
+        summary: 'Sidebar groups (includes Notifications)',
+        responses: { '200': { description: '{ groups: NavGroup[] }' } },
+      },
+    },
+    '/notifications': {
+      get: { tags: ['Notifications'], security: [{ bearerAuth: [] }], summary: 'List AppNotification[]' },
+      delete: { tags: ['Notifications'], security: [{ bearerAuth: [] }], summary: 'Clear all notifications' },
+    },
+    '/notifications/unread-count': {
+      get: { tags: ['Notifications'], security: [{ bearerAuth: [] }], summary: '{ count }' },
+    },
+    '/notifications/read-all': {
+      post: { tags: ['Notifications'], security: [{ bearerAuth: [] }] },
+      patch: { tags: ['Notifications'], security: [{ bearerAuth: [] }] },
+    },
+    '/notifications/push-subscribe': {
+      post: {
+        tags: ['Notifications'],
+        security: [{ bearerAuth: [] }],
+        summary: 'Store a Web Push subscription',
+      },
+    },
+    '/notifications/{id}': {
+      delete: { tags: ['Notifications'], security: [{ bearerAuth: [] }] },
+    },
+    '/notifications/{id}/read': {
+      post: { tags: ['Notifications'], security: [{ bearerAuth: [] }] },
+      patch: { tags: ['Notifications'], security: [{ bearerAuth: [] }] },
+    },
     '/media/presigned-upload': { post: { tags: ['Media'], security: [{ bearerAuth: [] }] } },
     '/media/complete': { post: { tags: ['Media'], security: [{ bearerAuth: [] }] } },
     '/admin/vehicles': { get: { tags: ['Admin'] }, post: { tags: ['Admin'] } },

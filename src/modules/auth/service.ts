@@ -8,7 +8,7 @@ import { hashPassword, randomToken, sha256, verifyPassword } from '../../utils/c
 import { refreshCookieOptions, signAccessToken, signRefreshToken, verifyRefreshToken } from '../../utils/tokens.js';
 import { toPublicUser } from '../users/dto.js';
 
-const email = createEmailProvider();
+const mail = createEmailProvider();
 
 function setRefreshCookie(res: Response, token: string) {
   res.cookie(REFRESH_COOKIE, token, refreshCookieOptions());
@@ -37,12 +37,22 @@ async function issueSession(user: { id: string; email: string; role: Parameters<
 }
 
 export class AuthService {
-  async signup(input: { name: string; email: string; password: string; phone?: string; country?: string }, res: Response) {
-    const existing = await prisma.user.findUnique({ where: { email: input.email.toLowerCase() } });
-    if (existing) throw AppError.conflict('EMAIL_IN_USE', 'An account with this email already exists');
+  async signup(
+    input: { name: string; username: string; email: string; password: string; phone?: string; country?: string },
+    res: Response,
+  ) {
+    const email = input.email.toLowerCase();
+    const username = input.username.trim().toLowerCase();
+    const [emailTaken, usernameTaken] = await Promise.all([
+      prisma.user.findUnique({ where: { email } }),
+      prisma.user.findUnique({ where: { username } }),
+    ]);
+    if (usernameTaken) throw AppError.conflict('USERNAME_IN_USE', 'An account with this username already exists');
+    if (emailTaken) throw AppError.conflict('EMAIL_IN_USE', 'An account with this email already exists');
     const user = await prisma.user.create({
       data: {
-        email: input.email.toLowerCase(),
+        email,
+        username,
         passwordHash: await hashPassword(input.password),
         name: input.name.trim(),
         phone: input.phone,
@@ -56,6 +66,8 @@ export class AuthService {
             type: 'account',
             title: 'Welcome to Aurora Motors',
             body: 'Your studio account is ready. Start exploring the line-up.',
+            href: '/cars',
+            kind: 'info',
           },
         },
       },
@@ -68,7 +80,7 @@ export class AuthService {
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       },
     });
-    await email.send({
+    await mail.send({
       to: user.email,
       subject: 'Verify your Aurora Motors account',
       text: `Your verification token is ${verify}`,
@@ -77,11 +89,16 @@ export class AuthService {
     return { user: toPublicUser(user), ...tokens };
   }
 
-  async login(input: { email: string; password: string }, res: Response) {
-    const user = await prisma.user.findUnique({ where: { email: input.email.toLowerCase() } });
-    if (!user || !user.isActive) throw AppError.unauthorized('Invalid email or password', 'INVALID_CREDENTIALS');
+  async login(input: { username?: string; email?: string; password: string }, res: Response) {
+    const identifier = (input.username ?? input.email ?? '').trim().toLowerCase();
+    const user = identifier.includes('@')
+      ? await prisma.user.findUnique({ where: { email: identifier } })
+      : await prisma.user.findUnique({ where: { username: identifier } });
+    if (!user || !user.isActive) {
+      throw AppError.unauthorized('Invalid username or password', 'INVALID_CREDENTIALS');
+    }
     const ok = await verifyPassword(input.password, user.passwordHash);
-    if (!ok) throw AppError.unauthorized('Invalid email or password', 'INVALID_CREDENTIALS');
+    if (!ok) throw AppError.unauthorized('Invalid username or password', 'INVALID_CREDENTIALS');
     const tokens = await issueSession(user, res);
     return { user: toPublicUser(user), ...tokens };
   }
@@ -147,7 +164,7 @@ export class AuthService {
           expiresAt: new Date(Date.now() + 60 * 60 * 1000),
         },
       });
-      await email.send({
+      await mail.send({
         to: user.email,
         subject: 'Reset your Aurora Motors password',
         text: `Your password reset code is ${token}`,

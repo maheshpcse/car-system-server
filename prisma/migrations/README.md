@@ -16,6 +16,7 @@ That is also what `npm run start:prod` and Railway run on boot.
 | --- | --- | --- |
 | `20240912120000_init` | Schema | Creates every MySQL table, enum, index, and foreign key |
 | `20240912130000_seed_aurora_catalog` | Data | Inserts brands, categories, 12 vehicles, options, and demo users |
+| `20240913180000_username_notifications_push` | Schema + data | Adds `users.username`, notification `href`/`kind`, `push_subscriptions`, demo inbox rows |
 
 Regenerate the data SQL from the TypeScript catalogue (only if the frontend vehicle set changes):
 
@@ -61,6 +62,7 @@ Then review the diff under `20240912130000_seed_aurora_catalog/migration.sql` be
 - `showroom_sessions`
 - `showroom_events`
 - `notifications`
+- `push_subscriptions`
 
 ### Admin and media
 
@@ -75,9 +77,9 @@ Vehicles: `aureon-x1`, `aureon-v9`, `velora-gt`, `velora-estate`, `nexen-e7`, `n
 
 Demo users (password `demo1234`):
 
-| Persona | Email |
-| --- | --- |
-| customer | maya@demo.aurora |
-| visitor | visitor@demo.aurora |
-| advisor | daniel@demo.aurora |
-| admin | priya@demo.aurora |
+| Persona | Username | Email |
+| --- | --- | --- |
+| customer | maya | maya@demo.aurora |
+| visitor | visitor | visitor@demo.aurora |
+| advisor | daniel | daniel@demo.aurora |
+| admin | priya | priya@demo.aurora |

@@ -4,6 +4,7 @@ import { ROLE_TO_FRONTEND } from '../../common/constants/index.js';
 export interface PublicUser {
   id: string;
   name: string;
+  username: string;
   firstName: string | null;
   lastName: string | null;
   displayName: string | null;
@@ -24,6 +25,7 @@ export function toPublicUser(user: User): PublicUser {
   return {
     id: user.id,
     name: user.name,
+    username: user.username,
     firstName: user.firstName ?? first ?? user.name,
     lastName: user.lastName ?? (rest.length ? rest.join(' ') : null),
     displayName: user.displayName ?? user.name,

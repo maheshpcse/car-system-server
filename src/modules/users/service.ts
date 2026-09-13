@@ -46,7 +46,11 @@ export class UserService {
   async deleteMe(userId: string) {
     await prisma.user.update({
       where: { id: userId },
-      data: { isActive: false, email: `deleted+${userId}@aurora.invalid` },
+      data: {
+        isActive: false,
+        email: `deleted+${userId}@aurora.invalid`,
+        username: `deleted_${userId.slice(0, 12)}`,
+      },
     });
   }
 
