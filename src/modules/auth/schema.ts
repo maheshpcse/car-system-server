@@ -24,7 +24,7 @@ export const loginSchema = z
     remember: z.boolean().optional(),
   })
   .refine((value) => Boolean(value.username || value.email), {
-    message: 'Username is required',
+    message: 'Username or email is required',
     path: ['username'],
   });
 

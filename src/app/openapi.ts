@@ -54,7 +54,7 @@ export const openApiDocument = {
     '/auth/login': {
       post: {
         tags: ['Auth'],
-        summary: 'Username/password login (email still accepted)',
+        summary: 'Username or email login',
         responses: { '200': { description: 'OK' }, '401': { description: 'INVALID_CREDENTIALS' } },
       },
     },

@@ -95,10 +95,10 @@ export class AuthService {
       ? await prisma.user.findUnique({ where: { email: identifier } })
       : await prisma.user.findUnique({ where: { username: identifier } });
     if (!user || !user.isActive) {
-      throw AppError.unauthorized('Invalid username or password', 'INVALID_CREDENTIALS');
+      throw AppError.unauthorized('Invalid username, email, or password', 'INVALID_CREDENTIALS');
     }
     const ok = await verifyPassword(input.password, user.passwordHash);
-    if (!ok) throw AppError.unauthorized('Invalid username or password', 'INVALID_CREDENTIALS');
+    if (!ok) throw AppError.unauthorized('Invalid username, email, or password', 'INVALID_CREDENTIALS');
     const tokens = await issueSession(user, res);
     return { user: toPublicUser(user), ...tokens };
   }

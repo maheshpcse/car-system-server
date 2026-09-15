@@ -20,6 +20,11 @@ describe('zod schemas', () => {
     expect(parsed.username).toBe('maya');
   });
 
+  it('accepts email login from the frontend', () => {
+    const parsed = loginSchema.parse({ email: 'maya@demo.aurora', password: 'demo1234' });
+    expect(parsed.email).toBe('maya@demo.aurora');
+  });
+
   it('rejects login without username or email', () => {
     expect(() => loginSchema.parse({ password: 'x' })).toThrow();
   });
